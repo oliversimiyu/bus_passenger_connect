@@ -8,11 +8,29 @@ class BusProvider extends ChangeNotifier {
   bool _isOnBus = false;
   String? _selectedStop;
   bool _alertTriggered = false;
+  // Add missing properties
+  bool _isAlertTriggered = false;
+  double _tripProgress = 0.0;
+  String? _currentBusName;
+  String? _currentRouteName;
+  int _estimatedArrivalTime = 0;
+  String? _startStopName;
+  String? _endStopName;
+  List<String> _remainingStops = [];
 
   Bus? get currentBus => _currentBus;
   bool get isOnBus => _isOnBus;
   String? get selectedStop => _selectedStop;
   bool get alertTriggered => _alertTriggered;
+  // Add missing getters
+  bool get isAlertTriggered => _isAlertTriggered;
+  double get tripProgress => _tripProgress;
+  String? get currentBusName => _currentBusName;
+  String? get currentRouteName => _currentRouteName;
+  int get estimatedArrivalTime => _estimatedArrivalTime;
+  String? get startStopName => _startStopName;
+  String? get endStopName => _endStopName;
+  List<String> get remainingStops => _remainingStops;
 
   // Board a bus with the scanned QR code data
   Future<void> boardBus(String busData) async {
@@ -45,6 +63,7 @@ class BusProvider extends ChangeNotifier {
   void triggerAlert() {
     if (_isOnBus && _selectedStop != null) {
       _alertTriggered = true;
+      _isAlertTriggered = true;
       // In a real app, this would send a notification to the driver
       notifyListeners();
     }
@@ -53,6 +72,27 @@ class BusProvider extends ChangeNotifier {
   // Cancel alert
   void cancelAlert() {
     _alertTriggered = false;
+    _isAlertTriggered = false;
+    notifyListeners();
+  }
+
+  // Update trip progress and route information
+  void updateTripInfo({
+    double? progress,
+    String? busName,
+    String? routeName,
+    int? arrivalTime,
+    String? startStop,
+    String? endStop,
+    List<String>? stops,
+  }) {
+    if (progress != null) _tripProgress = progress;
+    if (busName != null) _currentBusName = busName;
+    if (routeName != null) _currentRouteName = routeName;
+    if (arrivalTime != null) _estimatedArrivalTime = arrivalTime;
+    if (startStop != null) _startStopName = startStop;
+    if (endStop != null) _endStopName = endStop;
+    if (stops != null) _remainingStops = stops;
     notifyListeners();
   }
 

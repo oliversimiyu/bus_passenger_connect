@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import '../models/user_profile.dart';
+import '../providers/profile_provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/bus_provider.dart';
-import 'sign_in_screen.dart';
-import 'account_settings_screen.dart';
+import '../widgets/profile_menu_item.dart';
+import 'travel_history_screen.dart';
+import 'favorite_routes_screen.dart';
+import 'settings_screen.dart';
+import 'help_support_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -11,271 +16,297 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final profileProvider = Provider.of<ProfileProvider>(context);
     final user = authProvider.currentUser;
 
-    if (user == null) {
-      // Fallback if user is not authenticated
-      return const Center(child: Text('Not logged in'));
+    // If the user is authenticated but profile provider hasn't synced yet,
+    // sync the profile provider with authenticated user data
+    if (user != null &&
+        (profileProvider.userProfile == null ||
+            profileProvider.userProfile!.id != user.id)) {
+      // Schedule the sync for the next frame to avoid triggering during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        profileProvider.syncWithAuthUser(user);
+      });
     }
+
+    // Use authenticated user data if available
+    final userProfile =
+        profileProvider.userProfile ??
+        UserProfile(
+          id: user?.id ?? 'guest',
+          name: user?.name ?? 'Guest User',
+          email: user?.email ?? 'guest@example.com',
+          profileImageUrl: user?.photoUrl,
+          favoriteRouteIds: const [],
+          favoriteRoutes: const [],
+          travelHistory: const [],
+        );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('My Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-
-              // Profile Picture
-              CircleAvatar(
-                radius: 60,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: user.photoUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(60),
-                        child: Image.network(
-                          user.photoUrl!,
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
+        child: Column(
+          children: [
+            // Profile Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 32.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Profile Image
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
                         ),
-                      )
-                    : Text(
-                        user.name.substring(0, 1).toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                      ],
+                    ),
+                    child:
+                        userProfile.profileImageUrl != null &&
+                            userProfile.profileImageUrl!.isNotEmpty
+                        ? CircleAvatar(
+                            backgroundImage: NetworkImage(
+                              userProfile.profileImageUrl!,
+                            ),
+                            onBackgroundImageError: (exception, stackTrace) {
+                              if (kDebugMode) {
+                                print(
+                                  'Error loading profile image: $exception',
+                                );
+                              }
+                              // Return a fallback on error
+                              return;
+                            },
+                          )
+                        : CircleAvatar(
+                            backgroundColor: Colors.white,
+                            child: Text(
+                              userProfile.name.isNotEmpty
+                                  ? userProfile.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // User Name
+                  Text(
+                    userProfile.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // User Email
+                  Text(
+                    userProfile.email,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Profile Menu Items
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  // Account Settings
+                  ProfileMenuItem(
+                    icon: Icons.account_circle_outlined,
+                    title: 'Account Settings',
+                    subtitle: 'Manage your account information',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
                         ),
-                      ),
-              ),
-              const SizedBox(height: 20),
-
-              // User Name
-              Text(
-                user.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // User Email
-              Text(
-                user.email,
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 40),
-
-              // User Info Card
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _buildProfileItem(
-                        context,
-                        Icons.person,
-                        'Account Settings',
-                        'Manage your account information',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const AccountSettingsScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(),
-                      _buildProfileItem(
-                        context,
-                        Icons.history,
-                        'Travel History',
-                        'View your past trips',
-                        onTap: () {
-                          // TODO: Navigate to travel history screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Travel history coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(),
-                      _buildProfileItem(
-                        context,
-                        Icons.star,
-                        'Favorite Routes',
-                        'Access your frequently used routes',
-                        onTap: () {
-                          // TODO: Navigate to favorite routes screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Favorite routes coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
 
-              // Settings & Support Card
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _buildProfileItem(
-                        context,
-                        Icons.settings,
-                        'Settings',
-                        'App preferences and notifications',
-                        onTap: () {
-                          // TODO: Navigate to settings screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Settings coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(),
-                      _buildProfileItem(
-                        context,
-                        Icons.help,
-                        'Help & Support',
-                        'Get assistance with the app',
-                        onTap: () {
-                          // TODO: Navigate to help screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Help & Support coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
+                  const Divider(),
 
-              // Sign Out Button
-              ElevatedButton.icon(
-                onPressed: () => _confirmSignOut(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
-                  foregroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+                  // Travel History
+                  ProfileMenuItem(
+                    icon: Icons.history,
+                    title: 'Travel History',
+                    subtitle: 'View your past trips',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TravelHistoryScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+
+                  const Divider(),
+
+                  // Favorite Routes
+                  ProfileMenuItem(
+                    icon: Icons.favorite_outline,
+                    title: 'Favorite Routes',
+                    subtitle: 'Manage your favorite routes',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FavoriteRoutesScreen(),
+                        ),
+                      );
+                    },
                   ),
-                ),
-                icon: const Icon(Icons.logout),
-                label: const Text('Sign Out', style: TextStyle(fontSize: 16)),
+
+                  const Divider(),
+
+                  // Help & Support
+                  ProfileMenuItem(
+                    icon: Icons.help_outline,
+                    title: 'Help & Support',
+                    subtitle: 'Get assistance and answers to your questions',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HelpSupportScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const Divider(),
+
+                  // Logout
+                  ProfileMenuItem(
+                    icon: Icons.logout,
+                    title: 'Logout',
+                    subtitle: 'Sign out from your account',
+                    onTap: () {
+                      _showLogoutDialog(context, authProvider);
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String subtitle, {
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-      ),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
-    );
-  }
-
-  void _confirmSignOut(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, AuthProvider authProvider) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.pop(context);
             },
             child: const Text('CANCEL'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () async {
-              Navigator.of(ctx).pop();
+              Navigator.pop(context);
 
-              // Sign out the user
-              final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return const Dialog(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(width: 20),
+                          Text("Signing out..."),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
 
-              // Clear bus state
-              final busProvider = Provider.of<BusProvider>(
-                context,
-                listen: false,
-              );
-              await busProvider.exitBus();
-
-              // Sign out and navigate to sign in
-              await authProvider.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const SignInScreen()),
-                  (route) => false,
+              // Wait for signOut to complete with timeout protection
+              try {
+                await authProvider.signOut().timeout(
+                  const Duration(seconds: 5),
+                  onTimeout: () {
+                    if (kDebugMode) {
+                      print("Sign out timed out, but continuing app flow");
+                    }
+                    // Force state to be cleared anyway
+                    authProvider.forceSignOut();
+                  },
                 );
+              } catch (e) {
+                if (kDebugMode) {
+                  print("Error during sign out: $e");
+                }
+              }
+
+              // Close the loading dialog and return to home
+              if (context.mounted) {
+                Navigator.of(context).pop(); // Close the loading dialog
+
+                // Small delay to ensure navigation works smoothly
+                await Future.delayed(const Duration(milliseconds: 100));
+
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('SIGN OUT'),
+            child: const Text('LOGOUT'),
           ),
         ],
       ),

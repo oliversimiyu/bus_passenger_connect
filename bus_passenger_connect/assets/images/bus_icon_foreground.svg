@@ -1,0 +1,34 @@
+<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bus Body -->
+  <rect x="160" y="300" width="704" height="300" rx="50" ry="50" fill="#1976D2"/>
+  
+  <!-- Windows -->
+  <rect x="210" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  <rect x="310" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  <rect x="410" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  <rect x="510" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  <rect x="610" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  <rect x="710" y="350" width="80" height="100" rx="10" ry="10" fill="#B3E5FC"/>
+  
+  <!-- Windshield -->
+  <path d="M160,300 Q160,250 210,250 L814,250 Q864,250 864,300 Z" fill="#B3E5FC"/>
+  
+  <!-- Door -->
+  <rect x="510" y="500" width="80" height="100" rx="10" ry="10" fill="#0D47A1"/>
+  
+  <!-- Wheels -->
+  <circle cx="250" cy="650" r="70" fill="#424242"/>
+  <circle cx="250" cy="650" r="40" fill="#9E9E9E"/>
+  <circle cx="774" cy="650" r="70" fill="#424242"/>
+  <circle cx="774" cy="650" r="40" fill="#9E9E9E"/>
+  
+  <!-- Headlights -->
+  <circle cx="190" cy="300" r="20" fill="#FFEB3B"/>
+  <circle cx="834" cy="300" r="20" fill="#FFEB3B"/>
+  
+  <!-- License Plate -->
+  <rect x="452" y="570" width="120" height="30" fill="#E0E0E0"/>
+  
+  <!-- Route Display -->
+  <rect x="400" y="250" width="224" height="50" rx="10" ry="10" fill="#E0E0E0"/>
+</svg>

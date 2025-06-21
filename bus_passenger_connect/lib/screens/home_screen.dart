@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import '../providers/bus_provider.dart';
 import '../widgets/alert_confirmation_animation.dart';
 import '../widgets/stop_search_delegate.dart';
+import '../widgets/map_navigation_button.dart';
 import 'profile_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'qr_display_screen.dart';
+import 'map_screen_real.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -94,17 +96,24 @@ class HomeScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 20),
-          TextButton.icon(
-            icon: const Icon(Icons.qr_code),
-            label: const Text('Generate Test QR Code'),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const QRDisplayScreen(),
-                ),
-              );
-            },
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.qr_code),
+                label: const Text('Generate Test QR Code'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const QRDisplayScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
+          const SizedBox(height: 20),
+          const MapNavigationButton(),
         ],
       ),
     );
@@ -261,20 +270,46 @@ class HomeScreen extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                _confirmExitBus(context, busProvider);
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+          // Bus Exit and Map buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    _confirmExitBus(context, busProvider);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text('Exit Bus'),
                 ),
               ),
-              child: const Text('Exit Bus'),
-            ),
+              const SizedBox(width: 10),                ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MapScreenReal(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.map),
+                label: const Text('Track Route'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 15,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ),
         ],
       ),

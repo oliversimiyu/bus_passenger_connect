@@ -10,9 +10,11 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
+        maven { url = uri("/home/codename/CascadeProjects/bus-passenger-connect/maven_local") }
         google()
         mavenCentral()
         gradlePluginPortal()
+        jcenter() // Adding for compatibility with older dependencies
     }
 }
 

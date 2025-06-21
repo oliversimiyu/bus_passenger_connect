@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
@@ -249,13 +249,43 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Call the auth service sign out method
       await _authService.signOut();
+
+      // Clear all user-related state
       _currentUser = null;
+      _biometricsAvailable = false;
+      _availableBiometrics = [];
+
+      // Extra cleanup to ensure a clean sign out
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (kDebugMode) {
+        print("Sign out completed in AuthProvider");
+      }
     } catch (e) {
+      if (kDebugMode) {
+        print("Error during sign out: $e");
+      }
       _setError(e.toString());
+      // Even if there's an error, we should clear the user state
+      _currentUser = null;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Force sign out in case the normal flow fails
+  void forceSignOut() {
+    _currentUser = null;
+    _isLoading = false;
+    _biometricsAvailable = false;
+    _availableBiometrics = [];
+    notifyListeners();
+
+    if (kDebugMode) {
+      print("Force sign out completed");
     }
   }
 

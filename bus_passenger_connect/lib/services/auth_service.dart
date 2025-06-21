@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/services.dart';
 import '../models/user.dart';
 import 'secure_storage_service.dart';
-import 'api_service.dart';
+import 'api_service_real.dart';
 
 class AuthException implements Exception {
   final String message;
@@ -20,9 +19,6 @@ class AuthException implements Exception {
 }
 
 class AuthService {
-  // Mock user database (In a real app, this would be a server/database)
-  static final Map<String, Map<String, dynamic>> _users = {};
-
   // Key for storing current user in SharedPreferences
   static const String _userKey = 'current_user';
 
@@ -32,8 +28,8 @@ class AuthService {
   // Local authentication
   final LocalAuthentication _localAuth = LocalAuthentication();
 
-  // Mock API Service for future integration
-  final MockApiService _apiService = MockApiService();
+  // API Service for backend integration
+  final ApiService _apiService = ApiService();
 
   // Create a new user account
   Future<User> signUp({
@@ -46,11 +42,6 @@ class AuthService {
       throw AuthException('Invalid email format');
     }
 
-    // Check if email already exists
-    if (_users.containsKey(email)) {
-      throw AuthException('Email already in use', code: 'email-already-in-use');
-    }
-
     // Password validation
     if (password.length < 6) {
       throw AuthException(
@@ -59,79 +50,125 @@ class AuthService {
       );
     }
 
-    // Create new user (with a simulated ID)
-    final userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
+    try {
+      // Register user via API
+      final response = await _apiService.registerUser(
+        name,
+        email,
+        password,
+        '', // phoneNumber - optional for now
+      );
 
-    // Generate mock auth token and expiry (24 hours from now)
-    final token = _generateToken();
-    final tokenExpiry = DateTime.now().add(const Duration(hours: 24));
+      if (kDebugMode) {
+        print('DEBUG: Registration response: $response');
+      }
 
-    final newUser = User(
-      id: userId,
-      name: name,
-      email: email,
-      authToken: token,
-      tokenExpiry: tokenExpiry,
-    );
+      // Extract user data and token from response
+      final userData = response['user'];
+      final token = response['token'];
 
-    // Store user in our mock database
-    _users[email] = {
-      ...newUser.toJson(),
-      'password': password, // In a real app, this would be hashed
-    };
+      // Calculate token expiry (7 days as per backend)
+      final tokenExpiry = DateTime.now().add(const Duration(days: 7));
 
-    // Save token in secure storage
-    await _secureStorage.storeAuthToken(token);
-    await _secureStorage.storeUserId(userId);
+      final newUser = User(
+        id: userData['id'],
+        name: userData['name'],
+        email: userData['email'],
+        authToken: token,
+        tokenExpiry: tokenExpiry,
+      );
 
-    // Save user to SharedPreferences for session persistence
-    await _saveUserToPrefs(newUser);
+      // Set token in API service for future requests
+      _apiService.setToken(token);
 
-    return newUser;
+      // Save token in secure storage
+      await _secureStorage.storeAuthToken(token);
+      await _secureStorage.storeUserId(userData['id']);
+
+      // Save user to SharedPreferences for session persistence
+      await _saveUserToPrefs(newUser);
+
+      if (kDebugMode) {
+        print('DEBUG: User registered successfully: ${newUser.email}');
+      }
+
+      return newUser;
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Registration error: $e');
+      }
+
+      // Handle specific API errors
+      if (e.toString().contains('User already exists')) {
+        throw AuthException(
+          'Email already in use',
+          code: 'email-already-in-use',
+        );
+      }
+
+      throw AuthException('Registration failed: ${e.toString()}');
+    }
   }
 
   // Log in an existing user
   Future<User> signIn({required String email, required String password}) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (kDebugMode) {
+      print('DEBUG: Attempting sign in for email: $email');
+    }
 
-    // Check if user exists
-    if (!_users.containsKey(email)) {
-      throw AuthException(
-        'No account found with this email',
-        code: 'user-not-found',
+    try {
+      // Login user via API
+      final response = await _apiService.loginUser(email, password);
+
+      if (kDebugMode) {
+        print('DEBUG: Login response: $response');
+      }
+
+      // Extract user data and token from response
+      final userData = response['user'];
+      final token = response['token'];
+
+      // Calculate token expiry (7 days as per backend)
+      final tokenExpiry = DateTime.now().add(const Duration(days: 7));
+
+      final user = User(
+        id: userData['id'],
+        name: userData['name'],
+        email: userData['email'],
+        authToken: token,
+        tokenExpiry: tokenExpiry,
       );
+
+      // Set token in API service for future requests
+      _apiService.setToken(token);
+
+      // Save token in secure storage
+      await _secureStorage.storeAuthToken(token);
+      await _secureStorage.storeUserId(userData['id']);
+
+      // Save user to SharedPreferences for session persistence
+      await _saveUserToPrefs(user);
+
+      if (kDebugMode) {
+        print('DEBUG: User signed in successfully: ${user.email}');
+      }
+
+      return user;
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Sign in error: $e');
+      }
+
+      // Handle specific API errors
+      if (e.toString().contains('Invalid email or password')) {
+        throw AuthException(
+          'Invalid email or password',
+          code: 'wrong-password',
+        );
+      }
+
+      throw AuthException('Sign in failed: ${e.toString()}');
     }
-
-    // Check password
-    final userData = _users[email]!;
-    if (userData['password'] != password) {
-      throw AuthException('Invalid password', code: 'wrong-password');
-    }
-
-    // Generate mock auth token and expiry (24 hours from now)
-    final token = _generateToken();
-    final tokenExpiry = DateTime.now().add(const Duration(hours: 24));
-
-    // Create user object
-    final user = User.fromJson({
-      'id': userData['id'],
-      'name': userData['name'],
-      'email': userData['email'],
-      'photoUrl': userData['photoUrl'],
-      'authToken': token,
-      'tokenExpiry': tokenExpiry.toIso8601String(),
-      'useBiometrics': userData['useBiometrics'] ?? false,
-    });
-
-    // Save token in secure storage
-    await _secureStorage.storeAuthToken(token);
-    await _secureStorage.storeUserId(user.id);
-
-    // Save user to SharedPreferences for session persistence
-    await _saveUserToPrefs(user);
-
-    return user;
   }
 
   // Sign in with biometrics
@@ -180,23 +217,21 @@ class AuthService {
         throw AuthException('User data not found');
       }
 
-      // Generate new token
-      final token = _generateToken();
-      final tokenExpiry = DateTime.now().add(const Duration(hours: 24));
+      // Verify the existing token is still valid
+      if (!currentUser.isTokenValid) {
+        throw AuthException('Session expired, please log in again');
+      }
 
-      // Update user with new token
-      final updatedUser = currentUser.copyWith(
-        authToken: token,
-        tokenExpiry: tokenExpiry,
-      );
+      // Set token in API service for future requests
+      if (currentUser.authToken != null) {
+        _apiService.setToken(currentUser.authToken!);
+      }
 
-      // Save token in secure storage
-      await _secureStorage.storeAuthToken(token);
+      if (kDebugMode) {
+        print('DEBUG: Biometric authentication successful');
+      }
 
-      // Save updated user to SharedPreferences
-      await _saveUserToPrefs(updatedUser);
-
-      return updatedUser;
+      return currentUser;
     } on PlatformException catch (e) {
       throw AuthException('Biometric authentication error: ${e.message}');
     } catch (e) {
@@ -207,12 +242,51 @@ class AuthService {
 
   // Sign out the current user
   Future<void> signOut() async {
-    // Clear shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_userKey);
+    try {
+      if (kDebugMode) {
+        print("Starting sign out process...");
+      }
 
-    // Clear secure storage
-    await _secureStorage.clearAll();
+      // First clear secure storage as it's most critical
+      await _secureStorage.clearAll();
+
+      // Clear shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userKey);
+
+      // For extra safety, clear all data in shared preferences that might be related to the user
+      final allKeys = prefs.getKeys();
+      for (final key in allKeys) {
+        if (key.startsWith('user_') ||
+            key.contains('token') ||
+            key.contains('auth')) {
+          await prefs.remove(key);
+        }
+      }
+
+      // Small delay to ensure everything is flushed
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (kDebugMode) {
+        print("Sign out completed successfully");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error during sign out: $e");
+      }
+      // Continue with partial sign out even if there's an error
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_userKey);
+
+        // One more attempt to clear secure storage
+        await _secureStorage.clearAll();
+      } catch (finalError) {
+        if (kDebugMode) {
+          print("Final error in sign out: $finalError");
+        }
+      }
+    }
   }
 
   // Send password reset email
@@ -222,20 +296,20 @@ class AuthService {
       throw AuthException('Invalid email format');
     }
 
-    // Check if user exists
-    if (!_users.containsKey(email)) {
-      // For security reasons, don't reveal that the user doesn't exist
-      // Just simulate success
-      await Future.delayed(const Duration(milliseconds: 500));
-      return;
+    try {
+      // In a real backend implementation, you would call an API endpoint here
+      // For now, just simulate the API call
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      if (kDebugMode) {
+        print('DEBUG: Password reset email sent to: $email');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Error sending password reset email: $e');
+      }
+      throw AuthException('Failed to send password reset email');
     }
-
-    // In a real app, this would send an email with a reset link
-    // For now, just simulate the API call
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    // In a real app, you'd typically return a success message or token
-    return;
   }
 
   // Reset password with code
@@ -253,27 +327,27 @@ class AuthService {
       throw AuthException('Password must be at least 6 characters long');
     }
 
-    // Check if user exists
-    if (!_users.containsKey(email)) {
-      throw AuthException('No account found with this email');
+    try {
+      // In a real app, you would verify the reset code with the backend
+      // and then call an API endpoint to reset the password
+      final isValidCode = RegExp(r'^\d{6}$').hasMatch(code);
+      if (!isValidCode) {
+        throw AuthException('Invalid reset code');
+      }
+
+      // Simulate API call for password reset
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      if (kDebugMode) {
+        print('DEBUG: Password reset successfully for email: $email');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Error resetting password: $e');
+      }
+      if (e is AuthException) rethrow;
+      throw AuthException('Failed to reset password');
     }
-
-    // In a real app, you would verify the reset code
-    // For the mock implementation, we'll just accept any 6-digit code
-    final isValidCode = RegExp(r'^\d{6}$').hasMatch(code);
-    if (!isValidCode) {
-      throw AuthException('Invalid reset code');
-    }
-
-    // Update the password
-    final userData = _users[email]!;
-    userData['password'] = newPassword;
-    _users[email] = userData;
-
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    return;
   }
 
   // Update user profile
@@ -282,25 +356,47 @@ class AuthService {
     String? name,
     String? photoUrl,
   }) async {
-    // Find user by ID
-    final userEntry = _users.entries.firstWhere(
-      (entry) => entry.value['id'] == userId,
-      orElse: () => throw AuthException('User not found'),
-    );
+    try {
+      // Prepare update data
+      final updateData = <String, dynamic>{};
+      if (name != null) updateData['name'] = name;
+      if (photoUrl != null) updateData['profilePicture'] = photoUrl;
 
-    final userData = userEntry.value;
+      // Update profile via API
+      final response = await _apiService.updateUserProfile(updateData);
 
-    // Update user data
-    if (name != null) userData['name'] = name;
-    if (photoUrl != null) userData['photoUrl'] = photoUrl;
+      if (kDebugMode) {
+        print('DEBUG: Profile update response: $response');
+      }
 
-    // Create updated user object
-    final updatedUser = User.fromJson(userData);
+      // Get current token from secure storage
+      final token = await _secureStorage.getAuthToken();
+      final tokenExpiry = DateTime.now().add(const Duration(days: 7));
 
-    // Save to SharedPreferences
-    await _saveUserToPrefs(updatedUser);
+      // Create updated user object
+      final updatedUser = User(
+        id: response['_id'],
+        name: response['name'],
+        email: response['email'],
+        photoUrl: response['profilePicture'],
+        authToken: token,
+        tokenExpiry: tokenExpiry,
+      );
 
-    return updatedUser;
+      // Save to SharedPreferences
+      await _saveUserToPrefs(updatedUser);
+
+      if (kDebugMode) {
+        print('DEBUG: Profile updated successfully');
+      }
+
+      return updatedUser;
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Profile update error: $e');
+      }
+      throw AuthException('Profile update failed: ${e.toString()}');
+    }
   }
 
   // Enable/disable biometric authentication
@@ -330,25 +426,25 @@ class AuthService {
       }
     }
 
-    // Find user by ID
-    final userEntry = _users.entries.firstWhere(
-      (entry) => entry.value['id'] == userId,
-      orElse: () => throw AuthException('User not found'),
-    );
+    // Since biometrics is a local device setting, we store it locally
+    // Get current user from SharedPreferences
+    final currentUser = await getCurrentUser();
+    if (currentUser == null) {
+      throw AuthException('No user logged in');
+    }
 
-    final userData = userEntry.value;
-
-    // Update biometrics setting
-    userData['useBiometrics'] = useBiometrics;
+    // Update biometrics setting locally
+    final updatedUser = currentUser.copyWith(useBiometrics: useBiometrics);
 
     // Save setting to secure storage
     await _secureStorage.storeBiometricsEnabled(useBiometrics);
 
-    // Create updated user object
-    final updatedUser = User.fromJson(userData);
-
     // Save to SharedPreferences
     await _saveUserToPrefs(updatedUser);
+
+    if (kDebugMode) {
+      print('DEBUG: Biometrics setting updated to: $useBiometrics');
+    }
 
     return updatedUser;
   }
@@ -367,57 +463,31 @@ class AuthService {
 
       // Check if token is expired
       if (!user.isTokenValid) {
-        // Token expired, attempt to refresh it
-        try {
-          return await _refreshToken(user);
-        } catch (e) {
-          // If refresh fails, sign out user
-          await signOut();
-          return null;
+        if (kDebugMode) {
+          print('DEBUG: Token expired, clearing user session');
         }
+        await signOut();
+        return null;
+      }
+
+      // Set token in API service for future requests
+      if (user.authToken != null) {
+        _apiService.setToken(user.authToken!);
       }
 
       return user;
     } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Error loading current user: $e');
+      }
       return null;
     }
-  }
-
-  // Refresh the authentication token
-  Future<User> _refreshToken(User user) async {
-    // In a real app, this would call a refresh token endpoint
-    // For now, just generate a new token
-    final token = _generateToken();
-    final tokenExpiry = DateTime.now().add(const Duration(hours: 24));
-
-    final refreshedUser = user.copyWith(
-      authToken: token,
-      tokenExpiry: tokenExpiry,
-    );
-
-    // Save token in secure storage
-    await _secureStorage.storeAuthToken(token);
-
-    // Save updated user to SharedPreferences
-    await _saveUserToPrefs(refreshedUser);
-
-    return refreshedUser;
   }
 
   // Save user to SharedPreferences for persistence
   Future<void> _saveUserToPrefs(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(user.toJson()));
-  }
-
-  // Generate a random token (for mock purposes)
-  String _generateToken() {
-    const chars =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = Random();
-    return String.fromCharCodes(
-      List.generate(64, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
-    );
   }
 
   // Check if biometric authentication is available

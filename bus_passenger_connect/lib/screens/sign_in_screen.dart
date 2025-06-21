@@ -4,7 +4,7 @@ import 'package:local_auth/local_auth.dart';
 import '../providers/auth_provider.dart';
 import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import 'home_screen_real.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -37,7 +37,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const HomeScreenReal()),
         );
       }
     }
@@ -50,7 +50,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const HomeScreenReal()),
       );
     }
   }
@@ -263,7 +263,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ? null
                                 : _signInWithBiometrics,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.9),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.9,
+                              ),
                               foregroundColor: Colors.blue.shade800,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(

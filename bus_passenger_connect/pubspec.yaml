@@ -34,19 +34,33 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  qr_code_scanner: ^1.0.1
+  # Commenting out qr_code_scanner due to build issues
+  # qr_code_scanner: ^1.0.1
   mobile_scanner: ^7.0.1
   shared_preferences: ^2.5.3
   provider: ^6.1.5
   qr_flutter: ^4.1.0
   local_auth: ^2.1.8
-  http: ^1.2.1
+  http: ^1.4.0
   flutter_secure_storage: ^9.0.0
   email_validator: ^2.1.17
+  # Google Maps
+  google_maps_flutter: ^2.5.3
+  location: ^5.0.3
+  flutter_polyline_points: ^2.0.0
+  geolocator: ^11.0.0
+  path_provider: ^2.0.15
+  url_launcher: ^6.2.5
+  intl: ^0.19.0
+  google_maps_flutter_web: ^0.5.12+1
+  google_maps_flutter_platform_interface: ^2.12.1
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mockito: ^5.4.4
+  build_runner: ^2.4.8
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -54,6 +68,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -69,6 +84,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/icon/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -95,3 +111,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter launcher icons configuration
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  remove_alpha_ios: true

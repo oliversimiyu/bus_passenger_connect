@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bus Passenger Connect - Network Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        .loading { background-color: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Bus Passenger Connect - Network Test</h1>
+    <p>Use this page from your phone's browser to test if it can reach the backend.</p>
+    
+    <div id="status" class="test loading">
+        <strong>Status:</strong> Ready to test
+    </div>
+    
+    <button onclick="testConnection()">Test Backend Connection</button>
+    <button onclick="testRoutes()">Test Routes API</button>
+    <button onclick="testNearbyRoutes()">Test Nearby Routes</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const BACKEND_URL = 'http://192.168.100.129:5000';
+        
+        function updateStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.innerHTML = `<strong>Status:</strong> ${message}`;
+            status.className = `test ${type}`;
+        }
+        
+        function addResult(title, data, type = 'success') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<strong>${title}:</strong><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            results.appendChild(div);
+        }
+        
+        async function testConnection() {
+            updateStatus('Testing basic connection...', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/`);
+                const data = await response.json();
+                updateStatus('✅ Connection successful!', 'success');
+                addResult('Basic Connection Test', data, 'success');
+            } catch (error) {
+                updateStatus('❌ Connection failed!', 'error');
+                addResult('Connection Error', error.message, 'error');
+            }
+        }
+        
+        async function testRoutes() {
+            updateStatus('Testing routes API...', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/routes`);
+                const data = await response.json();
+                updateStatus('✅ Routes API successful!', 'success');
+                addResult('Routes API Test', `Found ${data.length} routes`, 'success');
+            } catch (error) {
+                updateStatus('❌ Routes API failed!', 'error');
+                addResult('Routes API Error', error.message, 'error');
+            }
+        }
+        
+        async function testNearbyRoutes() {
+            updateStatus('Testing nearby routes API...', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/routes/nearby?lat=-1.2921&lng=36.8219&radius=10`);
+                const data = await response.json();
+                updateStatus('✅ Nearby routes API successful!', 'success');
+                addResult('Nearby Routes API Test', `Found ${data.length} nearby routes`, 'success');
+            } catch (error) {
+                updateStatus('❌ Nearby routes API failed!', 'error');
+                addResult('Nearby Routes API Error', error.message, 'error');
+            }
+        }
+        
+        // Auto-test on load
+        window.onload = function() {
+            setTimeout(testConnection, 1000);
+        };
+    </script>
+</body>
+</html>

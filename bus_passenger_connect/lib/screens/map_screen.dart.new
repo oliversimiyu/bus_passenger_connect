@@ -1,0 +1,262 @@
+// filepath: /home/codename/CascadeProjects/bus-passenger-connect/bus_passenger_connect/lib/screens/map_screen.dart
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:bus_passenger_connect/providers/map_provider.dart';
+import 'package:bus_passenger_connect/utils/sample_routes.dart';
+import 'package:bus_passenger_connect/config/app_config.dart';
+
+class MapScreen extends StatefulWidget {
+  const MapScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  final CameraPosition _initialCameraPosition = const CameraPosition(
+    target: LatLng(AppConfig.defaultLatitude, AppConfig.defaultLongitude), // Default to Nairobi, Kenya
+    zoom: AppConfig.defaultZoom,
+  );
+  
+  bool _mapError = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Transit Map'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.my_location),
+            onPressed: () {
+              final mapProvider = Provider.of<MapProvider>(
+                context,
+                listen: false,
+              );
+              mapProvider.setTrackingMode(MapTrackingMode.followUser);
+            },
+          ),
+        ],
+      ),
+      body: Stack(children: [_buildMap(), _buildRoutePanel()]),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildMap() {
+    if (_mapError) {
+      return _buildMapErrorView();
+    }
+    
+    return Consumer<MapProvider>(
+      builder: (context, mapProvider, child) {
+        try {
+          return GoogleMap(
+            initialCameraPosition: _initialCameraPosition,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: true,
+            zoomControlsEnabled: false,
+            markers: mapProvider.markers,
+            polylines: mapProvider.routePolylines,
+            onMapCreated: (GoogleMapController controller) {
+              mapProvider.setMapController(controller);
+            },
+            onError: (error) {
+              if (kDebugMode) {
+                print("Google Maps error: $error");
+              }
+              setState(() {
+                _mapError = true;
+              });
+            },
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            print("Error creating Google Map: $e");
+          }
+          return _buildMapErrorView();
+        }
+      },
+    );
+  }
+  
+  Widget _buildMapErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.map_outlined, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            "Unable to load map",
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Please check your internet connection and try again",
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _mapError = false;
+              });
+            },
+            child: const Text("Retry"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoutePanel() {
+    return Consumer<MapProvider>(
+      builder: (context, mapProvider, child) {
+        // Show active route information if a route is active
+        if (mapProvider.isRouteActive && mapProvider.currentRoute != null) {
+          return Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mapProvider.currentRoute!.name,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    mapProvider.currentRoute!.description,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(Icons.route, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text('${mapProvider.currentRoute!.distanceInKm} km'),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.timer, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${mapProvider.currentRoute!.estimatedTimeInMinutes} min',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        mapProvider.stopRouteTracking();
+                      },
+                      child: const Text('End Route Tracking'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return Consumer<MapProvider>(
+      builder: (context, mapProvider, child) {
+        // Only show the routes button if no route is active
+        if (!mapProvider.isRouteActive) {
+          return FloatingActionButton.extended(
+            onPressed: () {
+              _showRoutesBottomSheet(context);
+            },
+            label: const Text('Routes'),
+            icon: const Icon(Icons.directions_bus),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  void _showRoutesBottomSheet(BuildContext context) {
+    final mapProvider = Provider.of<MapProvider>(context, listen: false);
+    final routes = SampleRoutes.getRoutes();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Available Routes',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: routes.length,
+                  itemBuilder: (context, index) {
+                    final route = routes[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        title: Text(route.name),
+                        subtitle: Text(route.description),
+                        trailing: Text('${route.distanceInKm} km'),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await mapProvider.startRouteTracking(route);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

@@ -1,7 +1,17 @@
 allprojects {
     repositories {
+        maven { url = uri("/home/codename/CascadeProjects/bus-passenger-connect/maven_local") }
         google()
         mavenCentral()
+        jcenter() // Adding for compatibility with older dependencies
+    }
+    
+    // Use offline mode to avoid network requests
+    configurations.all {
+        resolutionStrategy {
+            cacheChangingModulesFor(0, "seconds")
+            cacheDynamicVersionsFor(0, "seconds")
+        }
     }
 }
 
