@@ -49,14 +49,64 @@ app.*.map.json
 # Sensitive information
 **/secrets.json
 **/key.properties
+
+# Environment files
+backend/.env
+backend/.env.local
+backend/.env.production
+.env
+.env.local
+.env.production
+
 # APK files are too large for Git
 *.apk
+*.aab
 
 # Backend node_modules (too large for Git)
 backend/node_modules/
 node_modules/
 
+# Backend logs and temporary files
+backend/logs/
+backend/coverage/
+backend/.nyc_output/
+backend/dist/
+
+# Flutter build artifacts
+bus_passenger_connect/build/
+bus_passenger_connect/.dart_tool/
+bus_passenger_connect/.flutter-plugins
+bus_passenger_connect/.flutter-plugins-dependencies
+bus_passenger_connect/.packages
+bus_passenger_connect/.pub-cache/
+bus_passenger_connect/.pub/
+bus_passenger_connect/pubspec.lock
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/
+mongodb/
+
+# PHP Admin Dashboard
+admin-dashboard/config/database.php
+admin-dashboard/logs/
+
 # Large build files
 *.tar.gz
 *.zip
 build_output/
+
+# SSL Certificates
+*.pem
+*.key
+*.crt
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+coverage/
+test-results/
+screenshots/

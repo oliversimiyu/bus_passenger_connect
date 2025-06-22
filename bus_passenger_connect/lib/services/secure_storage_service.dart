@@ -123,6 +123,44 @@ class SecureStorageService {
     }
   }
 
+  // Generic key storage methods
+
+  // Store any key-value pair
+  Future<void> storeKey(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error storing key $key: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Get value for any key
+  Future<String?> getKey(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error reading key $key: $e');
+      }
+      return null;
+    }
+  }
+
+  // Delete specific key
+  Future<void> deleteKey(String key) async {
+    try {
+      await _storage.delete(key: key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error deleting key $key: $e');
+      }
+      rethrow;
+    }
+  }
+
   // Clear all secure storage data (for logout)
   Future<void> clearAll() async {
     if (kDebugMode) {

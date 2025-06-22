@@ -42,6 +42,64 @@ class ApiService {
     }
   }
 
+  // ======== Generic HTTP Methods ========
+
+  // Generic GET method
+  Future<Map<String, dynamic>> get(
+    String endpoint, {
+    bool requiresAuth = true,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _getHeaders(requiresAuth: requiresAuth),
+    );
+
+    return _handleResponse(response);
+  }
+
+  // Generic POST method
+  Future<Map<String, dynamic>> post(
+    String endpoint,
+    Map<String, dynamic> data, {
+    bool requiresAuth = true,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _getHeaders(requiresAuth: requiresAuth),
+      body: json.encode(data),
+    );
+
+    return _handleResponse(response);
+  }
+
+  // Generic PUT method
+  Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> data, {
+    bool requiresAuth = true,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _getHeaders(requiresAuth: requiresAuth),
+      body: json.encode(data),
+    );
+
+    return _handleResponse(response);
+  }
+
+  // Generic DELETE method
+  Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    bool requiresAuth = true,
+  }) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _getHeaders(requiresAuth: requiresAuth),
+    );
+
+    return _handleResponse(response);
+  }
+
   // ======== User Authentication APIs ========
 
   // Register new user

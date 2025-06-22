@@ -1,42 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const busController = require('../controllers/busController');
-const { protect, authorize } = require('../middlewares/auth');
+const { adminAuth } = require('../middlewares/adminAuth');
 
-// Get all buses - public
-router.get('/', busController.getAllBuses);
+// GET /api/buses/stats - Get bus statistics (admin only)
+router.get('/stats', adminAuth, busController.getBusStats);
 
-// Get a single bus by ID - public
-router.get('/:id', busController.getBusById);
+// GET /api/buses - Get all buses with pagination and filters (admin only)
+router.get('/', adminAuth, busController.getAllBuses);
 
-// Protected routes - admin only
-router.post(
-  '/', 
-  protect, 
-  authorize('admin'), 
-  busController.createBus
-);
+// GET /api/buses/:id - Get single bus by ID (admin only)
+router.get('/:id', adminAuth, busController.getBusById);
 
-router.put(
-  '/:id', 
-  protect, 
-  authorize('admin'), 
-  busController.updateBus
-);
+// POST /api/buses - Create new bus (admin only)
+router.post('/', adminAuth, busController.createBus);
 
-router.delete(
-  '/:id', 
-  protect, 
-  authorize('admin'), 
-  busController.deleteBus
-);
+// PUT /api/buses/:id - Update bus (admin only)
+router.put('/:id', adminAuth, busController.updateBus);
 
-// Update bus status - for drivers and admins
-router.patch(
-  '/:id/status', 
-  protect, 
-  authorize('driver', 'admin'), 
-  busController.updateBusStatus
-);
+// DELETE /api/buses/:id - Delete bus (admin only)
+router.delete('/:id', adminAuth, busController.deleteBus);
+
+// PUT /api/buses/:id/status - Update bus status (admin only)
+router.put('/:id/status', adminAuth, busController.updateBusStatus);
 
 module.exports = router;

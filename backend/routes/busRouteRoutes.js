@@ -1,35 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const busRouteController = require('../controllers/busRouteController');
-const { protect, authorize } = require('../middlewares/auth');
+const { adminAuth } = require('../middlewares/adminAuth');
 
-// Public routes - no authentication needed
-router.get('/', busRouteController.getAllRoutes);
-router.get('/search', busRouteController.searchRoutes);
-router.get('/nearby', busRouteController.getNearbyRoutes);
-router.get('/active', busRouteController.getActiveRoutes);
-router.get('/:id', busRouteController.getRouteById);
+// GET /api/routes/stats - Get route statistics (admin only)
+router.get('/stats', adminAuth, busRouteController.getRouteStats);
 
-// Protected routes - admin only
-router.post(
-  '/', 
-  protect, 
-  authorize('admin'), 
-  busRouteController.createRoute
-);
+// GET /api/routes - Get all routes with pagination and filters (admin only)
+router.get('/', adminAuth, busRouteController.getAllRoutes);
 
-router.put(
-  '/:id', 
-  protect, 
-  authorize('admin'), 
-  busRouteController.updateRoute
-);
+// GET /api/routes/:id - Get single route by ID (admin only)
+router.get('/:id', adminAuth, busRouteController.getRouteById);
 
-router.delete(
-  '/:id', 
-  protect, 
-  authorize('admin'), 
-  busRouteController.deleteRoute
-);
+// POST /api/routes - Create new route (admin only)
+router.post('/', adminAuth, busRouteController.createRoute);
+
+// PUT /api/routes/:id - Update route (admin only)
+router.put('/:id', adminAuth, busRouteController.updateRoute);
+
+// DELETE /api/routes/:id - Delete route (admin only)
+router.delete('/:id', adminAuth, busRouteController.deleteRoute);
 
 module.exports = router;

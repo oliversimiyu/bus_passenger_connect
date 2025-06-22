@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'services/location_service.dart';
 import 'services/directions_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/driver_provider.dart';
 import 'providers/bus_provider.dart';
 import 'providers/map_provider_real.dart';
 import 'providers/profile_provider.dart';
 import 'config/app_config.dart';
 import 'screens/home_screen_real.dart';
-import 'screens/sign_in_screen.dart';
+import 'screens/driver_dashboard_screen.dart';
+import 'screens/user_type_selection_screen.dart';
 import 'screens/splash_screen.dart';
 import 'utils/storage_test.dart';
 
@@ -34,6 +36,7 @@ void main() async {
 
   // Create providers
   final authProvider = AuthProvider();
+  final driverProvider = DriverProvider();
   final busProvider = BusProvider();
 
   // Create the real map provider
@@ -52,6 +55,7 @@ void main() async {
     }
 
     await authProvider.initialize();
+    await driverProvider.initialize();
 
     // Sync profile provider with authenticated user
     if (authProvider.isAuthenticated) {
@@ -59,13 +63,14 @@ void main() async {
     }
   } catch (e) {
     if (kDebugMode) {
-      print('Error initializing auth provider: $e');
+      print('Error initializing providers: $e');
     }
   }
 
   runApp(
     MyApp(
       authProvider: authProvider,
+      driverProvider: driverProvider,
       busProvider: busProvider,
       mapProviderReal: mapProviderReal,
       profileProvider: profileProvider,
@@ -77,6 +82,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final AuthProvider authProvider;
+  final DriverProvider driverProvider;
   final BusProvider busProvider;
   final MapProviderReal mapProviderReal;
   final ProfileProvider profileProvider;
@@ -86,6 +92,7 @@ class MyApp extends StatelessWidget {
   const MyApp({
     super.key,
     required this.authProvider,
+    required this.driverProvider,
     required this.busProvider,
     required this.mapProviderReal,
     required this.profileProvider,
@@ -98,6 +105,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider.value(value: driverProvider),
         ChangeNotifierProvider.value(value: busProvider),
         ChangeNotifierProvider.value(value: mapProviderReal),
         ChangeNotifierProvider.value(value: profileProvider),
@@ -158,21 +166,31 @@ class _BusPassengerAppState extends State<BusPassengerApp> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context);
+    final driverProvider = Provider.of<DriverProvider>(context);
 
-    if (authProvider.isLoading) {
+    if (authProvider.isLoading || driverProvider.isLoading) {
       return SplashScreen(
         onInitializationComplete: () {
           setState(() {
             authProvider.initialize();
+            driverProvider.initialize();
           });
         },
       );
     }
 
+    // Check if driver is authenticated
+    if (driverProvider.isAuthenticated &&
+        driverProvider.currentDriver != null) {
+      return DriverDashboardScreen(driver: driverProvider.currentDriver!);
+    }
+
+    // Check if passenger is authenticated
     if (authProvider.isAuthenticated) {
       return const HomeScreenReal();
-    } else {
-      return const SignInScreen();
     }
+
+    // No one is authenticated, show user type selection
+    return const UserTypeSelectionScreen();
   }
 }

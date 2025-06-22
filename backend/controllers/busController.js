@@ -1,12 +1,80 @@
 const Bus = require('../models/Bus');
 
-// Get all buses
+// Get all buses with pagination and filtering
 exports.getAllBuses = async (req, res) => {
   try {
-    const buses = await Bus.find();
-    res.status(200).json(buses);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Build query
+    let query = {};
+    
+    // Search functionality
+    if (req.query.search) {
+      query.$or = [
+        { busNumber: { $regex: req.query.search, $options: 'i' } },
+        { licenseNumber: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    
+    // Status filter
+    if (req.query.status) {
+      query.currentStatus = req.query.status;
+    }
+    
+    const buses = await Bus.find(query)
+      .populate('currentRouteId', 'name description')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Bus.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      buses,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving buses', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error retrieving buses', 
+      error: error.message 
+    });
+  }
+};
+
+// Get bus statistics
+exports.getBusStats = async (req, res) => {
+  try {
+    const total = await Bus.countDocuments();
+    const inService = await Bus.countDocuments({ currentStatus: 'in-service' });
+    const outOfService = await Bus.countDocuments({ currentStatus: 'out-of-service' });
+    const maintenance = await Bus.countDocuments({ currentStatus: 'maintenance' });
+    const withRoutes = await Bus.countDocuments({ currentRouteId: { $exists: true, $ne: null } });
+    
+    res.status(200).json({
+      success: true,
+      stats: {
+        total,
+        inService,
+        outOfService,
+        maintenance,
+        withRoutes,
+        withoutRoutes: total - withRoutes
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving bus statistics',
+      error: error.message
+    });
   }
 };
 

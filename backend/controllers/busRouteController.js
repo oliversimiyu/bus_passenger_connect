@@ -1,12 +1,89 @@
 const BusRoute = require('../models/BusRoute');
 
-// Get all routes
+// Get all routes with pagination and filtering for admin
 exports.getAllRoutes = async (req, res) => {
   try {
-    const routes = await BusRoute.find({ isActive: true });
-    res.status(200).json(routes);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Build query
+    let query = {};
+    
+    // Search functionality
+    if (req.query.search) {
+      query.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    
+    // Active filter
+    if (req.query.isActive !== undefined) {
+      query.isActive = req.query.isActive === 'true';
+    }
+    
+    const routes = await BusRoute.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await BusRoute.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      routes,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving routes', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving routes',
+      error: error.message
+    });
+  }
+};
+
+// Get route statistics
+exports.getRouteStats = async (req, res) => {
+  try {
+    const total = await BusRoute.countDocuments();
+    const active = await BusRoute.countDocuments({ isActive: true });
+    const inactive = await BusRoute.countDocuments({ isActive: false });
+    
+    // Calculate average fare and distance
+    const stats = await BusRoute.aggregate([
+      {
+        $group: {
+          _id: null,
+          avgFare: { $avg: '$fareAmount' },
+          avgDistance: { $avg: '$distanceInKm' },
+          avgTime: { $avg: '$estimatedTimeInMinutes' }
+        }
+      }
+    ]);
+    
+    res.status(200).json({
+      success: true,
+      stats: {
+        total,
+        active,
+        inactive,
+        averageFare: stats[0]?.avgFare?.toFixed(2) || 0,
+        averageDistance: stats[0]?.avgDistance?.toFixed(2) || 0,
+        averageTime: Math.round(stats[0]?.avgTime) || 0
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving route statistics',
+      error: error.message
+    });
   }
 };
 

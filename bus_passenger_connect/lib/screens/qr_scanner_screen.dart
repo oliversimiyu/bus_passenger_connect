@@ -4,7 +4,16 @@ import 'package:provider/provider.dart';
 import '../providers/bus_provider.dart';
 
 class QRScannerScreen extends StatefulWidget {
-  const QRScannerScreen({super.key});
+  final String? title;
+  final Function(String)? onQRCodeScanned;
+  final bool enableBusBoarding;
+
+  const QRScannerScreen({
+    super.key,
+    this.title,
+    this.onQRCodeScanned,
+    this.enableBusBoarding = true,
+  });
 
   @override
   State<QRScannerScreen> createState() => _QRScannerScreenState();
@@ -43,7 +52,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Bus QR Code'),
+        title: Text(widget.title ?? 'Scan Bus QR Code'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -91,6 +100,15 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   void _onQRCodeScanned(String code) async {
+    // If custom callback is provided, use it
+    if (widget.onQRCodeScanned != null) {
+      widget.onQRCodeScanned!(code);
+      return;
+    }
+
+    // Default behavior: bus boarding
+    if (!widget.enableBusBoarding) return;
+
     try {
       await Provider.of<BusProvider>(context, listen: false).boardBus(code);
       if (mounted) {

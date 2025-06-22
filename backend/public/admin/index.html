@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Passenger Connect - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .sidebar .nav-link {
+            color: white;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .stats-card.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .stats-card.success {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+        
+        .stats-card.danger {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+        
+        .btn-custom {
+            border-radius: 25px;
+            padding: 10px 30px;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-badge.active {
+            background: #28a745;
+        }
+        
+        .status-badge.inactive {
+            background: #ffc107;
+        }
+        
+        .status-badge.suspended {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white text-center mb-4">
+                        <i class="fas fa-bus"></i> Bus Connect
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="#drivers" onclick="showSection('drivers')">
+                            <i class="fas fa-users me-2"></i> Drivers
+                        </a>
+                        <a class="nav-link" href="#add-driver" onclick="showSection('add-driver')">
+                            <i class="fas fa-user-plus me-2"></i> Add Driver
+                        </a>
+                        <a class="nav-link" href="#routes" onclick="showSection('routes')">
+                            <i class="fas fa-route me-2"></i> Routes
+                        </a>
+                        <a class="nav-link" href="#buses" onclick="showSection('buses')">
+                            <i class="fas fa-bus-alt me-2"></i> Buses
+                        </a>
+                        <hr class="text-white">
+                        <div class="mt-auto">
+                            <div class="text-white text-center mb-3">
+                                <small>
+                                    <i class="fas fa-user me-1"></i>
+                                    <span id="adminName">Administrator</span>
+                                </small>
+                            </div>
+                            <button class="btn btn-outline-light btn-sm w-100" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="p-4">
+                    <!-- Dashboard Section -->
+                    <div id="dashboard" class="content-section">
+                        <h2 class="mb-4">Dashboard Overview</h2>
+                        
+                        <!-- Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users fa-3x mb-3"></i>
+                                        <h3 id="total-drivers">0</h3>
+                                        <p>Total Drivers</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card success">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-check fa-3x mb-3"></i>
+                                        <h3 id="active-drivers">0</h3>
+                                        <p>Active Drivers</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card warning">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-clock fa-3x mb-3"></i>
+                                        <h3 id="inactive-drivers">0</h3>
+                                        <p>Inactive Drivers</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card danger">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-times fa-3x mb-3"></i>
+                                        <h3 id="suspended-drivers">0</h3>
+                                        <p>Suspended Drivers</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Drivers -->
+                        <div class="table-container">
+                            <h4 class="mb-3">Recent Driver Registrations</h4>
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="recent-drivers-table">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>ID Number</th>
+                                            <th>Bus Company</th>
+                                            <th>License Plate</th>
+                                            <th>Status</th>
+                                            <th>Registration Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drivers Section -->
+                    <div id="drivers" class="content-section" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Manage Drivers</h2>
+                            <div>
+                                <button class="btn btn-outline-success btn-custom me-2" onclick="exportDrivers()">
+                                    <i class="fas fa-download me-2"></i> Export CSV
+                                </button>
+                                <button class="btn btn-primary btn-custom" onclick="showSection('add-driver')">
+                                    <i class="fas fa-plus me-2"></i> Add New Driver
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="search-drivers" placeholder="Search drivers...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="filter-status">
+                                            <option value="">All Status</option>
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control" id="filter-company" placeholder="Filter by company">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-outline-primary w-100" onclick="filterDrivers()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Drivers Table -->
+                        <div class="table-container">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="drivers-table">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>ID Number</th>
+                                            <th>Age</th>
+                                            <th>Phone</th>
+                                            <th>Bus Company</th>
+                                            <th>License Plate</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <nav>
+                                <ul class="pagination justify-content-center" id="pagination">
+                                    <!-- Pagination will be generated here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <!-- Add Driver Section -->
+                    <div id="add-driver" class="content-section" style="display: none;">
+                        <h2 class="mb-4">Add New Driver</h2>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <form id="driver-form">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="name" class="form-label">Full Name *</label>
+                                            <input type="text" class="form-control" id="name" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="idNumber" class="form-label">ID Number *</label>
+                                            <input type="text" class="form-control" id="idNumber" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="age" class="form-label">Age *</label>
+                                            <input type="number" class="form-control" id="age" min="18" max="70" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="phone" class="form-label">Phone Number *</label>
+                                            <input type="tel" class="form-control" id="phone" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="email">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="busCompany" class="form-label">Bus Company *</label>
+                                            <input type="text" class="form-control" id="busCompany" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="licensePlate" class="form-label">License Plate *</label>
+                                            <input type="text" class="form-control" id="licensePlate" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="licenseNumber" class="form-label">License Number *</label>
+                                            <input type="text" class="form-control" id="licenseNumber" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="experienceYears" class="form-label">Experience (Years)</label>
+                                            <input type="number" class="form-control" id="experienceYears" min="0">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="status" class="form-label">Status</label>
+                                            <select class="form-select" id="status">
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                                <option value="suspended">Suspended</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary btn-custom me-2">
+                                            <i class="fas fa-save me-2"></i> Save Driver
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-custom me-2" onclick="clearForm()">
+                                            <i class="fas fa-times me-2"></i> Clear
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-custom" onclick="cancelEdit()" id="cancel-edit-btn" style="display: none;">
+                                            <i class="fas fa-arrow-left me-2"></i> Cancel Edit
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Routes Management Section -->
+                    <div id="routes" class="content-section" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Bus Routes Management</h2>
+                            <div>
+                                <button class="btn btn-success" onclick="showAddRouteForm()">
+                                    <i class="fas fa-plus me-2"></i> Add New Route
+                                </button>
+                                <button class="btn btn-info" onclick="exportRoutes()">
+                                    <i class="fas fa-download me-2"></i> Export Routes
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Route Statistics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-route fa-3x mb-3"></i>
+                                        <h3 id="total-routes">0</h3>
+                                        <p>Total Routes</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card success">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                        <h3 id="active-routes">0</h3>
+                                        <p>Active Routes</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card warning">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-dollar-sign fa-3x mb-3"></i>
+                                        <h3 id="avg-fare">$0</h3>
+                                        <p>Average Fare</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card danger">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-road fa-3x mb-3"></i>
+                                        <h3 id="avg-distance">0 km</h3>
+                                        <p>Average Distance</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Routes Filter and Search -->
+                        <div class="card table-container mb-4">
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="search-routes" placeholder="Search routes...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="filter-route-status">
+                                            <option value="">All Status</option>
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-primary" onclick="loadRoutes()">
+                                            <i class="fas fa-search me-2"></i> Search
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Routes Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Route Name</th>
+                                                <th>Distance</th>
+                                                <th>Duration</th>
+                                                <th>Fare</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="routes-table-body">
+                                            <!-- Routes will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Routes Pagination -->
+                                <nav>
+                                    <ul class="pagination justify-content-center" id="routes-pagination">
+                                        <!-- Pagination will be generated here -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+
+                        <!-- Add/Edit Route Form -->
+                        <div class="card" id="route-form-container" style="display: none;">
+                            <div class="card-header">
+                                <h5 id="route-form-title">Add New Route</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="route-form">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-name" class="form-label">Route Name *</label>
+                                            <input type="text" class="form-control" id="route-name" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-description" class="form-label">Description *</label>
+                                            <input type="text" class="form-control" id="route-description" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-distance" class="form-label">Distance (km) *</label>
+                                            <input type="number" class="form-control" id="route-distance" step="0.1" min="0" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-time" class="form-label">Estimated Time (minutes) *</label>
+                                            <input type="number" class="form-control" id="route-time" min="1" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-fare" class="form-label">Fare Amount *</label>
+                                            <input type="number" class="form-control" id="route-fare" step="0.01" min="0" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="route-status" class="form-label">Status *</label>
+                                            <select class="form-select" id="route-status" required>
+                                                <option value="true">Active</option>
+                                                <option value="false">Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="start-lat" class="form-label">Start Latitude *</label>
+                                            <input type="number" class="form-control" id="start-lat" step="any" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="start-lng" class="form-label">Start Longitude *</label>
+                                            <input type="number" class="form-control" id="start-lng" step="any" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="end-lat" class="form-label">End Latitude *</label>
+                                            <input type="number" class="form-control" id="end-lat" step="any" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="end-lng" class="form-label">End Longitude *</label>
+                                            <input type="number" class="form-control" id="end-lng" step="any" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i> Save Route
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideRouteForm()">
+                                            <i class="fas fa-times me-2"></i> Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bus Management Section -->
+                    <div id="buses" class="content-section" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Bus Management</h2>
+                            <div>
+                                <button class="btn btn-success" onclick="showAddBusForm()">
+                                    <i class="fas fa-plus me-2"></i> Add New Bus
+                                </button>
+                                <button class="btn btn-info" onclick="exportBuses()">
+                                    <i class="fas fa-download me-2"></i> Export Buses
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bus Statistics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-bus fa-3x mb-3"></i>
+                                        <h3 id="total-buses">0</h3>
+                                        <p>Total Buses</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card success">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-play-circle fa-3x mb-3"></i>
+                                        <h3 id="in-service-buses">0</h3>
+                                        <p>In Service</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card warning">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-tools fa-3x mb-3"></i>
+                                        <h3 id="maintenance-buses">0</h3>
+                                        <p>In Maintenance</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card stats-card danger">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-stop-circle fa-3x mb-3"></i>
+                                        <h3 id="out-service-buses">0</h3>
+                                        <p>Out of Service</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bus Filter and Search -->
+                        <div class="card table-container mb-4">
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="search-buses" placeholder="Search buses...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="filter-bus-status">
+                                            <option value="">All Status</option>
+                                            <option value="in-service">In Service</option>
+                                            <option value="out-of-service">Out of Service</option>
+                                            <option value="maintenance">Maintenance</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-primary" onclick="loadBuses()">
+                                            <i class="fas fa-search me-2"></i> Search
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Buses Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Bus Number</th>
+                                                <th>License Number</th>
+                                                <th>Capacity</th>
+                                                <th>Current Route</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="buses-table-body">
+                                            <!-- Buses will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Bus Pagination -->
+                                <nav>
+                                    <ul class="pagination justify-content-center" id="buses-pagination">
+                                        <!-- Pagination will be generated here -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+
+                        <!-- Add/Edit Bus Form -->
+                        <div class="card" id="bus-form-container" style="display: none;">
+                            <div class="card-header">
+                                <h5 id="bus-form-title">Add New Bus</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="bus-form">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="bus-number" class="form-label">Bus Number *</label>
+                                            <input type="text" class="form-control" id="bus-number" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="license-number" class="form-label">License Number *</label>
+                                            <input type="text" class="form-control" id="license-number" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="bus-capacity" class="form-label">Capacity *</label>
+                                            <input type="number" class="form-control" id="bus-capacity" min="1" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="bus-status" class="form-label">Status *</label>
+                                            <select class="form-select" id="bus-status" required>
+                                                <option value="out-of-service">Out of Service</option>
+                                                <option value="in-service">In Service</option>
+                                                <option value="maintenance">Maintenance</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="current-route" class="form-label">Current Route</label>
+                                            <select class="form-select" id="current-route">
+                                                <option value="">No Route Assigned</option>
+                                                <!-- Routes will be populated here -->
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i> Save Bus
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideBusForm()">
+                                            <i class="fas fa-times me-2"></i> Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="admin.js"></script>
+</body>
+</html>
